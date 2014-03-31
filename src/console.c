@@ -17,7 +17,7 @@ struct nfc_ntf_param {
 
 static ssize_t
 nfc_rf_discovery_ntf_cb(void* data,
-                        struct nfc_device* nfc,
+                        struct nfc_device* nfc, size_t maxlen,
                         union nci_packet* ntf)
 {
     ssize_t res;
@@ -32,7 +32,7 @@ nfc_rf_discovery_ntf_cb(void* data,
 
 static ssize_t
 nfc_rf_intf_activated_ntf_cb(void* data,
-                             struct nfc_device* nfc,
+                             struct nfc_device* nfc, size_t maxlen,
                              union nci_packet* ntf)
 {
     size_t res;
@@ -138,7 +138,7 @@ struct nfc_dta_write_param {
 };
 
 static ssize_t
-nfc_dta_write_cb(void* data, struct nfc_device* nfc,
+nfc_dta_write_cb(void* data, struct nfc_device* nfc, size_t maxlen,
                  union nci_packet* packet)
 {
   const struct nfc_dta_write_param* param;
