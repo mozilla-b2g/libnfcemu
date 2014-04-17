@@ -7,12 +7,14 @@
 struct nfc_ntf_param {
     ControlClient client;
     struct nfc_re* re;
+    unsigned long ntype;
 };
 
 #define NFC_NTF_PARAM_INIT(_client) \
     { \
       .client = (_client), \
-      .re = NULL \
+      .re = NULL, \
+      .ntype = 0 \
     }
 
 static ssize_t
@@ -22,7 +24,7 @@ nfc_rf_discovery_ntf_cb(void* data,
 {
     ssize_t res;
     const struct nfc_ntf_param* param = data;
-    res = nfc_create_rf_discovery_ntf(param->re, nfc, ntf);
+    res = nfc_create_rf_discovery_ntf(param->re, param->ntype, nfc, ntf);
     if (res < 0) {
         control_write(param->client, "KO: rf_discover failed\r\n");
         return -1;
@@ -87,6 +89,25 @@ do_nfc_ntf( ControlClient  client, char*  args )
         }
         if (!(i < sizeof(nfc_res)/sizeof(nfc_res[0])) ) {
             control_write(client, "KO: unknown remote endpoint %zu\r\n", i);
+            return -1;
+        }
+
+        /* read discover notification type */
+        p = strsep(&args, " ");
+        if (!p) {
+            control_write(client, "KO: no discover notification type given\r\n");
+            return -1;
+        }
+        errno = 0;
+        param.ntype = strtoul(p, NULL, 0);
+        if (errno) {
+            control_write(client,
+                          "KO: invalid discover notification type '%s', error %d(%s)\r\n",
+                          p, errno, strerror(errno));
+            return -1;
+        }
+        if (!(param.ntype < NUMBER_OF_NCI_NOTIFICATION_TYPES)) {
+            control_write(client, "KO: unknown discover notification type %zu\r\n", param.ntype);
             return -1;
         }
         param.re = nfc_res + i;
