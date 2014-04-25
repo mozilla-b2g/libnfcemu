@@ -28,7 +28,7 @@ nfc_rf_discovery_ntf_cb(void* data,
     const struct nfc_ntf_param* param = data;
     res = nfc_create_rf_discovery_ntf(param->re, param->ntype, nfc, ntf);
     if (res < 0) {
-        control_write(param->client, "KO: rf_discover failed\r\n");
+        control_write(param->client, "KO: rf_discover_ntf failed\r\n");
         return -1;
     }
     return res;
@@ -83,14 +83,14 @@ nfc_rf_intf_activated_ntf_cb(void* data,
     }
     res = nfc_create_rf_intf_activated_ntf(param->re, nfc, ntf);
     if (res < 0) {
-        control_write(param->client, "KO: rf_intf_activated failed\r\n");
+        control_write(param->client, "KO: rf_intf_activated_ntf failed\r\n");
         return -1;
     }
     return res;
 }
 
 static int
-do_nfc_ntf( ControlClient  client, char*  args )
+do_nfc_nci( ControlClient  client, char*  args )
 {
     char *p;
 
@@ -105,7 +105,7 @@ do_nfc_ntf( ControlClient  client, char*  args )
         control_write(client, "KO: no operation given\r\n");
         return -1;
     }
-    if (!strcmp(p, "rf_discover")) {
+    if (!strcmp(p, "rf_discover_ntf")) {
         size_t i;
         struct nfc_ntf_param param = NFC_NTF_PARAM_INIT(client);
         /* read remote-endpoint index */
@@ -151,7 +151,7 @@ do_nfc_ntf( ControlClient  client, char*  args )
             /* error message generated in create function */
             return -1;
         }
-    } else if (!strcmp(p, "rf_intf_activated")) {
+    } else if (!strcmp(p, "rf_intf_activated_ntf")) {
         struct nfc_ntf_param param = NFC_NTF_PARAM_INIT(client);
         /* read remote-endpoint index */
         p = strsep(&args, " ");
