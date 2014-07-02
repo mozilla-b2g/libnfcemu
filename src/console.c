@@ -455,6 +455,36 @@ parse_rf_index(ControlClient client, char** args, long* rf)
 }
 
 static int
+parse_nci_deactivate_ntf_type(ControlClient client, char** args, unsigned long* dtype)
+{
+    assert(dtype);
+
+    if (parse_token_ul(client, "deactivate notification type", " ", args, dtype) < 0) {
+        return -1;
+    }
+    if (!(*dtype < NUMBER_OF_NCI_RF_DEACT_TYPE)) {
+        control_write(client, "KO: unknown deactivate notification type %lu\r\n", *dtype);
+        return -1;
+    }
+    return 0;
+}
+
+static int
+parse_nci_deactivate_ntf_reason(ControlClient client, char** args, unsigned long* dreason)
+{
+    assert(dreason);
+
+    if (parse_token_ul(client, "deactivate notification reason", " ", args, dreason) < 0) {
+        return -1;
+    }
+    if (!(*dreason < NUMBER_OF_NCI_RF_DEACT_REASON)) {
+        control_write(client, "KO: unknown deactivate notification reason %lu\r\n", *dreason);
+        return -1;
+    }
+    return 0;
+}
+
+static int
 do_nfc_snep( ControlClient  client, char*  args )
 {
     char *p;
@@ -518,6 +548,8 @@ struct nfc_ntf_param {
     struct nfc_re* re;
     unsigned long ntype;
     long rf;
+    unsigned long dreason;
+    unsigned long dtype;
 };
 
 #define NFC_NTF_PARAM_INIT(_client) \
@@ -525,7 +557,9 @@ struct nfc_ntf_param {
       .client = (_client), \
       .re = NULL, \
       .ntype = 0, \
-      .rf = -1 \
+      .rf = -1, \
+      .dreason = 0, \
+      .dtype = 0 \
     }
 
 static ssize_t
@@ -576,6 +610,25 @@ nfc_rf_intf_activated_ntf_cb(void* data,
     res = nfc_create_rf_intf_activated_ntf(param->re, nfc, ntf);
     if (res < 0) {
         control_write(param->client, "KO: rf_intf_activated_ntf failed\r\n");
+        return -1;
+    }
+    return res;
+}
+
+static ssize_t
+nfc_rf_intf_deactivate_ntf_cb(void* data,
+                              struct nfc_device* nfc, size_t maxlen,
+                              union nci_packet* ntf)
+{
+    ssize_t res;
+    struct nfc_ntf_param* param = data;
+
+    assert(data);
+    assert(nfc);
+
+    res = nfc_create_deactivate_ntf(param->dtype, param->dreason, ntf);
+    if (res < 0) {
+        control_write(param->client, "KO: rf_intf_deactivate_ntf failed\r\n");
         return -1;
     }
     return res;
@@ -641,6 +694,25 @@ do_nfc_nci( ControlClient  client, char*  args )
         /* generate RF_INTF_ACTIVATED_NTF; if param.re == NULL,
          * active RE will be used */
         if (goldfish_nfc_send_ntf(nfc_rf_intf_activated_ntf_cb, &param) < 0) {
+            /* error message generated in create function */
+            return -1;
+        }
+    } else if (!strcmp(p, "rf_intf_deactivate_ntf")) {
+        struct nfc_ntf_param param = NFC_NTF_PARAM_INIT(client);
+        if (args && *args) {
+            /* read deactivate ntf type */
+            if (parse_nci_deactivate_ntf_type(client, &args, &param.dtype) < 0) {
+                return -1;
+            }
+            /* read deactivate ntf reason */
+            if (parse_nci_deactivate_ntf_reason(client, &args, &param.dreason) < 0) {
+                return -1;
+            }
+        } else {
+            param.dtype = NCI_RF_DEACT_DISCOVERY;
+            param.dreason = NCI_RF_DEACT_RF_LINK_LOSS;
+        }
+        if (goldfish_nfc_send_ntf(nfc_rf_intf_deactivate_ntf_cb, &param) < 0) {
             /* error message generated in create function */
             return -1;
         }
