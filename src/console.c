@@ -853,6 +853,19 @@ do_nfc_tag( ControlClient client, char*  args )
         if (nfc_tag_set_data(re->tag, buf, res) < 0) {
             return -1;
         }
+    } else if (!strcmp(p, "clear")) {
+        unsigned long i;
+        struct nfc_re* re;
+
+        /* read remote-endpoint index */
+        if (parse_re_index(client, &args, ARRAY_SIZE(nfc_res), &i) < 0) {
+            return -1;
+        }
+        re = nfc_res + i;
+
+        if (nfc_tag_set_data(re->tag, NULL, 0) < 0) {
+            return -1;
+        }
     }
 
     return 0;
