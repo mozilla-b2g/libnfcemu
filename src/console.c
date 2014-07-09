@@ -11,8 +11,8 @@ struct nfc_ndef_record_param {
     unsigned long flags;
     enum ndef_tnf tnf;
     const char* type;
-    const char* payload;
     const char* id;
+    const char* payload;
 };
 
 #define NFC_NDEF_PARAM_RECORD_INIT(_rec) \
@@ -20,8 +20,8 @@ struct nfc_ndef_record_param {
         .flags = 0, \
         .tnf = 0, \
         .type = NULL, \
-        .payload = NULL, \
-        .id = NULL \
+        .id = NULL, \
+        .payload = NULL \
     }
 
 ssize_t
@@ -62,6 +62,17 @@ build_ndef_msg(ControlClient client,
         ndef_rec_set_type_len(ndef, res);
         off += res;
 
+        if (flags & NDEF_FLAG_IL) {
+            /* decode id */
+            res = decode_base64(record->id, strlen(record->id),
+                                buf+off, len-off);
+            if (res < 0) {
+                return -1;
+            }
+            ndef_rec_set_id_len(ndef, res);
+            off += res;
+        }
+
         /* decode payload */
         res = decode_base64(record->payload, strlen(record->payload),
                             buf+off, len-off);
@@ -75,17 +86,6 @@ build_ndef_msg(ControlClient client,
         }
         ndef_rec_set_payload_len(ndef, res);
         off += res;
-
-        if (flags & NDEF_FLAG_IL) {
-            /* decode id */
-            res = decode_base64(record->id, strlen(record->id),
-                                buf+off, len-off);
-            if (res < 0) {
-                return -1;
-            }
-            ndef_rec_set_id_len(ndef, res);
-            off += res;
-        }
     }
     return off;
 }
@@ -180,18 +180,18 @@ nfc_recv_process_ndef_cb(void* data, size_t len, const struct ndef_rec* ndef)
         tlen = encode_base64(ndef_rec_const_type(ndef),
                              ndef_rec_type_len(ndef),
                              base64[0], sizeof(base64[0]));
+        ilen = encode_base64(ndef_rec_const_id(ndef), ndef_rec_id_len(ndef),
+                             base64[1], sizeof(base64[1]));
         plen = encode_base64(ndef_rec_const_payload(ndef),
                              ndef_rec_payload_len(ndef),
-                             base64[1], sizeof(base64[1]));
-        ilen = encode_base64(ndef_rec_const_id(ndef), ndef_rec_id_len(ndef),
                              base64[2], sizeof(base64[2]));
 
         /* print NDEF message in JSON format */
         control_write(param->client,
                       "{\"tnf\": %d,"
                       " \"type\": \"%.*s\","
-                      " \"payload\": \"%.*s\","
-                      " \"id\": \"%.*s\"}",
+                      " \"id\": \"%.*s\","
+                      " \"payload\": \"%.*s\"}",
                       ndef->flags & NDEF_TNF_BITS,
                       tlen, base64[0], plen, base64[1], ilen, base64[2]);
 
@@ -375,12 +375,12 @@ parse_ndef_rec(ControlClient client, char** args,
     if (parse_token_s(client, "NDEF type", " ,", args, &record->type, 0) < 0) {
         return -1;
     }
-    /* read payload */
-    if (parse_token_s(client, "NDEF payload", " ,", args, &record->payload, 0) < 0) {
+    /* read id; might by empty */
+    if (parse_token_s(client, "NDEF id", " ,", args, &record->id, 1) < 0) {
         return -1;
     }
-    /* read id; might by empty */
-    if (parse_token_s(client, "NDEF id", "]", args, &record->id, 1) < 0) {
+    /* read payload */
+    if (parse_token_s(client, "NDEF payload", "]", args, &record->payload, 0) < 0) {
         return -1;
     }
     return 0;
