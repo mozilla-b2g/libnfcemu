@@ -19,7 +19,6 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := base64.c\
                    console.c \
-                   goldfish_nfc.c \
                    llcp.c \
                    llcp-snep.c \
                    ndef.c \
