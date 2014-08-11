@@ -18,6 +18,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include "ptr.h"
 #include "base64.h"
 #include "llcp.h"
 #include "ndef.h"

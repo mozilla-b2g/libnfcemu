@@ -16,6 +16,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include "ptr.h"
 #include "nfc.h"
 #include "nfc-nci.h"
 
