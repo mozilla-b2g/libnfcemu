@@ -15,6 +15,7 @@
  */
 
 #include <assert.h>
+#include <stdlib.h>
 #include <string.h>
 #include "nfc-debug.h"
 #include "nfc.h"
@@ -667,7 +668,7 @@ nfc_delivery_deactivate_cmd_cb(void* data, union nci_packet* pkt)
     param = (struct nfc_deactivate_ntf_param*)data;
     res = nfc_create_deactivate_ntf(param->type, param->reason, pkt);
 
-    qemu_free(param);
+    free(param);
 
     return res;
 }
@@ -744,7 +745,10 @@ init_process_oid_rf_deactivate_cmd(const union nci_packet* cmd,
     if (send_ntf) {
         struct nfc_deactivate_ntf_param* data;
 
-        data = qemu_malloc(sizeof(*data));
+        data = malloc(sizeof(*data));
+        if (!data) {
+          abort(); // TODO: maybe return error
+        }
         data->type = payload->type;
         data->reason = NCI_RF_DEACT_DH_REQUEST;
 
@@ -771,7 +775,7 @@ nfc_delivery_t3t_polling_cmd_cb(void* data, union nci_packet* pkt)
     param = (struct nfc_t3t_polling_ntf_param*)data;
     res = nfc_create_t3t_polling_ntf(param->re, pkt);
 
-    qemu_free(param);
+    free(param);
 
     return res;
 }
@@ -786,7 +790,10 @@ init_process_oid_t3t_polling_cmd(const union nci_packet* cmd,
     /* We do nothing here except send notification to HOST */
     struct nfc_t3t_polling_ntf_param* ntf;
 
-    ntf = qemu_malloc(sizeof(*ntf));
+    ntf = malloc(sizeof(*ntf));
+    if (!ntf) {
+      abort(); // TODO: maybe return error
+    }
 
     ntf->re = nfc->active_re;
 
