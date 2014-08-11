@@ -16,12 +16,10 @@
 
 #include <assert.h>
 #include <string.h>
-#include "bswap.h"
 #include "nfc-debug.h"
 #include "nfc.h"
 #include "nfc-re.h"
 #include "nfc-nci.h"
-#include "goldfish_nfc.h"
 
 /* first value is offset, second is number of bytes */
 static const uint8_t config_id_value[256][2] = {

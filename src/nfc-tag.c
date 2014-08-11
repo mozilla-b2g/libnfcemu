@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <assert.h>
+#include <string.h>
 #include "nfc-debug.h"
 #include "nfc.h"
 #include "nfc-re.h"

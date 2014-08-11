@@ -15,7 +15,6 @@
  */
 
 #include <assert.h>
-#include "bswap.h"
 #include "ndef.h"
 
 static size_t

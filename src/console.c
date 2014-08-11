@@ -14,14 +14,18 @@
  * limitations under the License.
  */
 
-#include "hw/llcp.h"
-#include "hw/goldfish_nfc.h"
-#include "hw/ndef.h"
-#include "hw/nfc-re.h"
-#include "hw/nfc.h"
-#include "hw/nfc-nci.h"
-#include "hw/nfc-tag.h"
-#include "hw/snep.h"
+#include <assert.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+#include "base64.h"
+#include "llcp.h"
+#include "ndef.h"
+#include "nfc-re.h"
+#include "nfc.h"
+#include "nfc-nci.h"
+#include "nfc-tag.h"
+#include "snep.h"
 
 struct nfc_ndef_record_param {
     unsigned long flags;

@@ -23,7 +23,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include "qemu-queue.h"
+#include <sys/queue.h>
 
 enum {
     LLCP_VERSION_MAJOR = 0x01,

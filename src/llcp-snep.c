@@ -16,8 +16,6 @@
 
 #include <assert.h>
 #include <limits.h>
-#include "osdep.h"
-#include "bswap.h"
 #include "nfc-debug.h"
 #include "llcp.h"
 #include "snep.h"

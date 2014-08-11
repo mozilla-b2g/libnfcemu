@@ -19,8 +19,8 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <sys/types.h>
 #include "nfc-rf.h"
-#include "qemu-common.h"
 
 struct nfc_re;
 union nci_packet;

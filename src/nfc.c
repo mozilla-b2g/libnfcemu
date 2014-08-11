@@ -16,7 +16,6 @@
 
 #include <assert.h>
 #include <string.h>
-#include "qemu-common.h"
 #include "nfc.h"
 #include "nfc-nci.h"
 

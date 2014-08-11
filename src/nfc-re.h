@@ -17,7 +17,7 @@
 #ifndef nfc_re_h
 #define nfc_re_h
 
-#include "qemu-timer.h"
+#include <sys/types.h>
 #include "llcp.h"
 #include "nfc-rf.h"
 

@@ -17,7 +17,6 @@
 #ifndef hw_nfc_debug_h
 #define hw_nfc_debug_h
 
-#include <android/utils/debug.h>
 #include <stdio.h>
 
 #if DEBUG

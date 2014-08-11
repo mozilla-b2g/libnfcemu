@@ -17,8 +17,6 @@
 #ifndef nfc_tag_h
 #define nfc_tag_h
 
-#include "qemu-common.h"
-
 enum {
     MAXIMUM_SUPPORTED_TAG_SIZE = 1024
 };
