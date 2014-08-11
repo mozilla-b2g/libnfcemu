@@ -46,8 +46,7 @@ struct nfc_ndef_record_param {
     }
 
 ssize_t
-build_ndef_msg(ControlClient client,
-               const struct nfc_ndef_record_param* record, size_t nrecords,
+build_ndef_msg(const struct nfc_ndef_record_param* record, size_t nrecords,
                uint8_t* buf, size_t len)
 {
     size_t off;
@@ -111,16 +110,14 @@ build_ndef_msg(ControlClient client,
 }
 
 struct nfc_snep_param {
-    ControlClient client;
     long dsap;
     long ssap;
     size_t nrecords;
     struct nfc_ndef_record_param record[4];
 };
 
-#define NFC_SNEP_PARAM_INIT(_client) \
+#define NFC_SNEP_PARAM_INIT() \
     { \
-        .client = (_client), \
         .dsap = LLCP_SAP_LM, \
         .ssap = LLCP_SAP_LM, \
         .nrecords = 0, \
@@ -141,7 +138,7 @@ create_snep_cp(void *data, size_t len, struct snep* snep)
     param = data;
     assert(param);
 
-    res = build_ndef_msg(param->client, param->record, param->nrecords,
+    res = build_ndef_msg(param->record, param->nrecords,
                          snep->info, len-sizeof(*snep));
     if (res < 0) {
         return -1;
@@ -253,7 +250,7 @@ nfc_recv_snep_put_cb(void* data,  struct nfc_device* nfc)
 }
 
 static const char*
-lex_token(ControlClient client, const char* field, const char* delim, char** args)
+lex_token(const char* field, const char* delim, char** args)
 {
     const char *tok;
 
@@ -268,14 +265,13 @@ lex_token(ControlClient client, const char* field, const char* delim, char** arg
 }
 
 static int
-parse_token_l(ControlClient client, const char* field, const char* delim,
-              char** args, long* val)
+parse_token_l(const char* field, const char* delim, char** args, long* val)
 {
     const char* tok;
 
     assert(val);
 
-    tok = lex_token(client, field, delim, args);
+    tok = lex_token(field, delim, args);
     if (!tok) {
         return -1;
     }
@@ -290,14 +286,14 @@ parse_token_l(ControlClient client, const char* field, const char* delim,
 }
 
 static int
-parse_token_ul(ControlClient client, const char* field, const char* delim,
+parse_token_ul(const char* field, const char* delim,
                char** args, unsigned long* val)
 {
     const char* tok;
 
     assert(val);
 
-    tok = lex_token(client, field, delim, args);
+    tok = lex_token(field, delim, args);
     if (!tok) {
         return -1;
     }
@@ -312,14 +308,14 @@ parse_token_ul(ControlClient client, const char* field, const char* delim,
 }
 
 static int
-parse_token_s(ControlClient client, const char* field, const char* delim,
+parse_token_s(const char* field, const char* delim,
               char** args, const char** val, int allow_empty)
 {
     // TODO: we could add support for escaped characters, if necessary
 
     assert(val);
 
-    *val = lex_token(client, field, delim, args);
+    *val = lex_token(field, delim, args);
     if (!*val) {
         return -1;
     }
@@ -331,13 +327,12 @@ parse_token_s(ControlClient client, const char* field, const char* delim,
 }
 
 static int
-parse_sap(ControlClient client, const char* field,
-          char** args, long* sap, int can_autodetect)
+parse_sap(const char* field, char** args, long* sap, int can_autodetect)
 {
     assert(args);
     assert(sap);
 
-    if (parse_token_l(client, field, " ", args, sap) < 0) {
+    if (parse_token_l(field, " ", args, sap) < 0) {
         return -1;
     }
     if (((*sap == -1) && !can_autodetect) ||
@@ -354,8 +349,7 @@ parse_sap(ControlClient client, const char* field,
  * are given in base64url encoding.
  */
 static int
-parse_ndef_rec(ControlClient client, char** args,
-               struct nfc_ndef_record_param* record)
+parse_ndef_rec(char** args, struct nfc_ndef_record_param* record)
 {
     const char* p;
     unsigned long tnf;
@@ -370,7 +364,7 @@ parse_ndef_rec(ControlClient client, char** args,
         return -1;
     }
     /* read flags */
-    if (parse_token_ul(client, "NDEF flags", " ,", args, &record->flags) < 0) {
+    if (parse_token_ul("NDEF flags", " ,", args, &record->flags) < 0) {
         return -1;
     }
     if (record->flags & ~NDEF_FLAG_BITS) {
@@ -379,7 +373,7 @@ parse_ndef_rec(ControlClient client, char** args,
         return -1;
     }
     /* read TNF */
-    if (parse_token_ul(client, "NDEF TNF", " ,", args, &tnf) < 0) {
+    if (parse_token_ul("NDEF TNF", " ,", args, &tnf) < 0) {
         return -1;
     }
     if (!(tnf < NDEF_NUMBER_OF_TNFS)) {
@@ -389,30 +383,29 @@ parse_ndef_rec(ControlClient client, char** args,
     }
     record->tnf = tnf;
     /* read type */
-    if (parse_token_s(client, "NDEF type", " ,", args, &record->type, 0) < 0) {
+    if (parse_token_s("NDEF type", " ,", args, &record->type, 0) < 0) {
         return -1;
     }
     /* read id; might by empty */
-    if (parse_token_s(client, "NDEF id", " ,", args, &record->id, 1) < 0) {
+    if (parse_token_s("NDEF id", " ,", args, &record->id, 1) < 0) {
         return -1;
     }
     /* read payload */
-    if (parse_token_s(client, "NDEF payload", "]", args, &record->payload, 0) < 0) {
+    if (parse_token_s("NDEF payload", "]", args, &record->payload, 0) < 0) {
         return -1;
     }
     return 0;
 }
 
 static ssize_t
-parse_ndef_msg(ControlClient client, char** args, size_t nrecs,
-               struct nfc_ndef_record_param* rec)
+parse_ndef_msg(char** args, size_t nrecs, struct nfc_ndef_record_param* rec)
 {
     size_t i;
 
     assert(args);
 
     for (i = 0; i < nrecs && *args && strlen(*args); ++i) {
-        if (parse_ndef_rec(client, args, rec+i) < 0) {
+        if (parse_ndef_rec(args, rec+i) < 0) {
           return -1;
         }
     }
@@ -425,12 +418,11 @@ parse_ndef_msg(ControlClient client, char** args, size_t nrecs,
 }
 
 static int
-parse_re_index(ControlClient client, char** args, unsigned long nres,
-               unsigned long* i)
+parse_re_index(char** args, unsigned long nres, unsigned long* i)
 {
     assert(i);
 
-    if (parse_token_ul(client, "remote endpoint", " ", args, i) < 0) {
+    if (parse_token_ul("remote endpoint", " ", args, i) < 0) {
         return -1;
     }
     if (!(*i < nres)) {
@@ -441,11 +433,11 @@ parse_re_index(ControlClient client, char** args, unsigned long nres,
 }
 
 static int
-parse_nci_ntf_type(ControlClient client, char** args, unsigned long* ntype)
+parse_nci_ntf_type(char** args, unsigned long* ntype)
 {
     assert(ntype);
 
-    if (parse_token_ul(client, "discover notification type", " ", args, ntype) < 0) {
+    if (parse_token_ul("discover notification type", " ", args, ntype) < 0) {
         return -1;
     }
     if (!(*ntype < NUMBER_OF_NCI_NOTIFICATION_TYPES)) {
@@ -456,11 +448,11 @@ parse_nci_ntf_type(ControlClient client, char** args, unsigned long* ntype)
 }
 
 static int
-parse_rf_index(ControlClient client, char** args, long* rf)
+parse_rf_index(char** args, long* rf)
 {
     assert(rf);
 
-    if (parse_token_l(client, "rf index", " ", args, rf) < 0) {
+    if (parse_token_l("rf index", " ", args, rf) < 0) {
         return -1;
     }
     if (*rf < -1 || *rf >= NUMBER_OF_SUPPORTED_NCI_RF_INTERFACES) {
@@ -471,11 +463,11 @@ parse_rf_index(ControlClient client, char** args, long* rf)
 }
 
 static int
-parse_nci_deactivate_ntf_type(ControlClient client, char** args, unsigned long* dtype)
+parse_nci_deactivate_ntf_type(char** args, unsigned long* dtype)
 {
     assert(dtype);
 
-    if (parse_token_ul(client, "deactivate notification type", " ", args, dtype) < 0) {
+    if (parse_token_ul("deactivate notification type", " ", args, dtype) < 0) {
         return -1;
     }
     if (!(*dtype < NUMBER_OF_NCI_RF_DEACT_TYPE)) {
@@ -486,11 +478,11 @@ parse_nci_deactivate_ntf_type(ControlClient client, char** args, unsigned long* 
 }
 
 static int
-parse_nci_deactivate_ntf_reason(ControlClient client, char** args, unsigned long* dreason)
+parse_nci_deactivate_ntf_reason(char** args, unsigned long* dreason)
 {
     assert(dreason);
 
-    if (parse_token_ul(client, "deactivate notification reason", " ", args, dreason) < 0) {
+    if (parse_token_ul("deactivate notification reason", " ", args, dreason) < 0) {
         return -1;
     }
     if (!(*dreason < NUMBER_OF_NCI_RF_DEACT_REASON)) {
@@ -501,7 +493,7 @@ parse_nci_deactivate_ntf_reason(ControlClient client, char** args, unsigned long
 }
 
 static int
-do_nfc_snep( ControlClient  client, char*  args )
+do_nfc_snep(char* args)
 {
     char *p;
 
@@ -517,14 +509,14 @@ do_nfc_snep( ControlClient  client, char*  args )
     }
     if (!strcmp(p, "put")) {
         ssize_t nrecords;
-        struct nfc_snep_param param = NFC_SNEP_PARAM_INIT(client);
+        struct nfc_snep_param param = NFC_SNEP_PARAM_INIT();
 
         /* read DSAP */
-        if (parse_sap(client, "DSAP", &args, &param.dsap, 1) < 0) {
+        if (parse_sap("DSAP", &args, &param.dsap, 1) < 0) {
             return -1;
         }
         /* read SSAP */
-        if (parse_sap(client, "SSAP", &args, &param.ssap, 1) < 0) {
+        if (parse_sap("SSAP", &args, &param.ssap, 1) < 0) {
             return -1;
         }
         /* The emulator supports up to 4 records per NDEF
@@ -532,7 +524,7 @@ do_nfc_snep( ControlClient  client, char*  args )
          * will print the current content of the LLCP data-
          * link buffer.
          */
-        nrecords = parse_ndef_msg(client, &args, ARRAY_SIZE(param.record),
+        nrecords = parse_ndef_msg(&args, ARRAY_SIZE(param.record),
                                   param.record);
         if (nrecords < 0) {
             return -1;
@@ -560,7 +552,6 @@ do_nfc_snep( ControlClient  client, char*  args )
 }
 
 struct nfc_ntf_param {
-    ControlClient client;
     struct nfc_re* re;
     unsigned long ntype;
     long rf;
@@ -568,9 +559,8 @@ struct nfc_ntf_param {
     unsigned long dtype;
 };
 
-#define NFC_NTF_PARAM_INIT(_client) \
+#define NFC_NTF_PARAM_INIT() \
     { \
-      .client = (_client), \
       .re = NULL, \
       .ntype = 0, \
       .rf = -1, \
@@ -651,7 +641,7 @@ nfc_rf_intf_deactivate_ntf_cb(void* data,
 }
 
 static int
-do_nfc_nci( ControlClient  client, char*  args )
+do_nfc_nci(char*  args)
 {
     char *p;
 
@@ -668,15 +658,15 @@ do_nfc_nci( ControlClient  client, char*  args )
     }
     if (!strcmp(p, "rf_discover_ntf")) {
         unsigned long i;
-        struct nfc_ntf_param param = NFC_NTF_PARAM_INIT(client);
+        struct nfc_ntf_param param = NFC_NTF_PARAM_INIT();
         /* read remote-endpoint index */
-        if (parse_re_index(client, &args, ARRAY_SIZE(nfc_res), &i) < 0) {
+        if (parse_re_index(&args, ARRAY_SIZE(nfc_res), &i) < 0) {
             return -1;
         }
         param.re = nfc_res + i;
 
         /* read discover notification type */
-        if (parse_nci_ntf_type(client, &args, &param.ntype) < 0) {
+        if (parse_nci_ntf_type(&args, &param.ntype) < 0) {
             return -1;
         }
 
@@ -686,18 +676,18 @@ do_nfc_nci( ControlClient  client, char*  args )
             return -1;
         }
     } else if (!strcmp(p, "rf_intf_activated_ntf")) {
-        struct nfc_ntf_param param = NFC_NTF_PARAM_INIT(client);
+        struct nfc_ntf_param param = NFC_NTF_PARAM_INIT();
         if (args && *args) {
             unsigned long i;
             /* read remote-endpoint index */
-            if (parse_re_index(client, &args, ARRAY_SIZE(nfc_res), &i) < 0) {
+            if (parse_re_index(&args, ARRAY_SIZE(nfc_res), &i) < 0) {
                 return -1;
             }
             param.re = nfc_res + i;
 
             if (args && *args) {
                 /* read rf interface index */
-                if (parse_rf_index(client, &args, &param.rf) < 0) {
+                if (parse_rf_index(&args, &param.rf) < 0) {
                     return -1;
                 }
             } else {
@@ -714,14 +704,14 @@ do_nfc_nci( ControlClient  client, char*  args )
             return -1;
         }
     } else if (!strcmp(p, "rf_intf_deactivate_ntf")) {
-        struct nfc_ntf_param param = NFC_NTF_PARAM_INIT(client);
+        struct nfc_ntf_param param = NFC_NTF_PARAM_INIT();
         if (args && *args) {
             /* read deactivate ntf type */
-            if (parse_nci_deactivate_ntf_type(client, &args, &param.dtype) < 0) {
+            if (parse_nci_deactivate_ntf_type(&args, &param.dtype) < 0) {
                 return -1;
             }
             /* read deactivate ntf reason */
-            if (parse_nci_deactivate_ntf_reason(client, &args, &param.dreason) < 0) {
+            if (parse_nci_deactivate_ntf_reason(&args, &param.dreason) < 0) {
                 return -1;
             }
         } else {
@@ -741,14 +731,12 @@ do_nfc_nci( ControlClient  client, char*  args )
 }
 
 struct nfc_llcp_param {
-    ControlClient client;
     long dsap;
     long ssap;
 };
 
-#define NFC_LLCP_PARAM_INIT(_client) \
+#define NFC_LLCP_PARAM_INIT() \
     { \
-        .client = (_client), \
         .dsap = 0, \
         .ssap = 0 \
     }
@@ -785,7 +773,7 @@ nfc_llcp_connect_cb(void* data, struct nfc_device* nfc, size_t maxlen,
 }
 
 static int
-do_nfc_llcp( ControlClient  client, char*  args )
+do_nfc_llcp(char* args)
 {
     char *p;
 
@@ -800,14 +788,14 @@ do_nfc_llcp( ControlClient  client, char*  args )
         return -1;
     }
     if (!strcmp(p, "connect")) {
-        struct nfc_llcp_param param = NFC_LLCP_PARAM_INIT(client);
+        struct nfc_llcp_param param = NFC_LLCP_PARAM_INIT();
 
         /* read DSAP */
-        if (parse_sap(client, "DSAP", &args, &param.dsap, 1) < 0) {
+        if (parse_sap("DSAP", &args, &param.dsap, 1) < 0) {
             return -1;
         }
         /* read SSAP */
-        if (parse_sap(client, "SSAP", &args, &param.ssap, 1) < 0) {
+        if (parse_sap("SSAP", &args, &param.ssap, 1) < 0) {
             return -1;
         }
         if (cb.send_dta(nfc_llcp_connect_cb, &param) < 0) {
@@ -823,7 +811,7 @@ do_nfc_llcp( ControlClient  client, char*  args )
 }
 
 static int
-do_nfc_tag( ControlClient client, char*  args )
+do_nfc_tag(char* args)
 {
     char *p;
 
@@ -846,7 +834,7 @@ do_nfc_tag( ControlClient client, char*  args )
         uint8_t buf[MAXIMUM_SUPPORTED_TAG_SIZE];
 
         /* read remote-endpoint index */
-        if (parse_re_index(client, &args, ARRAY_SIZE(nfc_res), &i) < 0) {
+        if (parse_re_index(&args, ARRAY_SIZE(nfc_res), &i) < 0) {
             return -1;
         }
         re = nfc_res + i;
@@ -856,12 +844,12 @@ do_nfc_tag( ControlClient client, char*  args )
             return -1;
         }
 
-        nrecords = parse_ndef_msg(client, &args, ARRAY_SIZE(record), record);
+        nrecords = parse_ndef_msg(&args, ARRAY_SIZE(record), record);
         if (nrecords < 0) {
             return -1;
         }
 
-        res = build_ndef_msg(client, record, nrecords, buf, ARRAY_SIZE(buf));
+        res = build_ndef_msg(record, nrecords, buf, ARRAY_SIZE(buf));
         if (res < 0) {
             return -1;
         }
@@ -874,7 +862,7 @@ do_nfc_tag( ControlClient client, char*  args )
         struct nfc_re* re;
 
         /* read remote-endpoint index */
-        if (parse_re_index(client, &args, ARRAY_SIZE(nfc_res), &i) < 0) {
+        if (parse_re_index(&args, ARRAY_SIZE(nfc_res), &i) < 0) {
             return -1;
         }
         re = nfc_res + i;
@@ -887,7 +875,7 @@ do_nfc_tag( ControlClient client, char*  args )
         struct nfc_re* re;
 
         /* read remote-endpoint index */
-        if (parse_re_index(client, &args, ARRAY_SIZE(nfc_res), &i) < 0) {
+        if (parse_re_index(&args, ARRAY_SIZE(nfc_res), &i) < 0) {
             return -1;
         }
         re = nfc_res + i;
