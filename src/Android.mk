@@ -18,6 +18,7 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := base64.c\
+                   cb.c \
                    console.c \
                    llcp.c \
                    llcp-snep.c \
@@ -28,6 +29,7 @@ LOCAL_SRC_FILES := base64.c\
                    nfc-re.c \
                    nfc-rf.c \
                    nfc-tag.c \
+                   nfcemu.c \
                    snep.c
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/../include
 LOCAL_MODULE_TAGS := optional
