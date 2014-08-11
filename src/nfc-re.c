@@ -23,6 +23,7 @@
 #include "llcp.h"
 #include "snep.h"
 #include "llcp-snep.h"
+#include "cb.h"
 #include "nfc-re.h"
 
 /* NFCID2 is defined in [Digital] Table44 */
@@ -79,15 +80,15 @@ send_pdu_from_re(ssize_t (*create)(void*, struct llcp_pdu*),
 {
     if (re->xmit_next) {
         /* it's our turn to xmit the next PDU; we do this
-         * immediately and cancel the possible timer for the
-         * SYMM PDU */
+         * immediately and cancel the possible timeout for
+         * the SYMM PDU */
         struct create_nci_dta_param param =
             CREATE_NCI_DTA_PARAM_INIT(create, data, re);
 
-        goldfish_nfc_send_dta(create_nci_dta, &param);
+        cb.send_dta(create_nci_dta, &param);
         re->xmit_next = 0;
-        if (re->xmit_timer) {
-            qemu_del_timer(re->xmit_timer);
+        if (re->xmit_timeout) {
+            cb.del_timeout(re->xmit_timeout);
         }
     } else {
         /* we're waiting for the host to send a SYMM PDU, so
@@ -153,15 +154,15 @@ xmit_pdu_or_symm_from_re(struct llcp_pdu* llcp, struct nfc_re* re)
  * before the link timeout expires.
  */
 static void
-prepare_xmit_timer(struct nfc_re* re, void (*xmit_next_cb)(void*))
+prepare_xmit_timeout(struct nfc_re* re, void (*xmit_next_cb)(void*))
 {
-    if (!re->xmit_timer) {
-        re->xmit_timer = qemu_new_timer_ms(vm_clock, xmit_next_cb, re);
-        assert(re->xmit_timer);
+    if (!re->xmit_timeout) {
+        re->xmit_timeout = cb.new_timeout(xmit_next_cb, re);
+        assert(re->xmit_timeout);
     }
-    if (!qemu_timer_pending(re->xmit_timer)) {
+    if (!cb.timeout_is_pending(re->xmit_timeout)) {
         /* xmit PDU in two seconds */
-        qemu_mod_timer(re->xmit_timer, qemu_get_clock_ms(vm_clock)+2000);
+        cb.mod_timeout(re->xmit_timeout, 2000);
     }
 }
 
@@ -305,7 +306,7 @@ create_dta(void* data, struct nfc_device* nfc, size_t maxlen,
 static void
 xmit_next_cb(void* opaque)
 {
-    goldfish_nfc_send_dta(create_dta, opaque);
+    cb.send_dta(create_dta, opaque);
 }
 
 static size_t
@@ -583,8 +584,8 @@ process_llcp(struct nfc_re* re, const struct llcp_pdu* llcp,
     /* we implicitely received send permission */
     re->xmit_next = 1;
 
-    /* prepare timer for LLCP SYMM */
-    prepare_xmit_timer(re, xmit_next_cb);
+    /* prepare timeout for LLCP SYMM */
+    prepare_xmit_timeout(re, xmit_next_cb);
 
     return len;
 }

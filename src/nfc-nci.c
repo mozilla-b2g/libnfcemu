@@ -18,6 +18,7 @@
 #include <string.h>
 #include "nfc-debug.h"
 #include "nfc.h"
+#include "cb.h"
 #include "nfc-re.h"
 #include "nfc-nci.h"
 
@@ -67,7 +68,7 @@ nfc_nci_device_set(struct nfc_device* nfc, enum nci_config_param_id id,
     nfc_device_set(nfc, config_id_value[id][0], len, value);
 
     if ((id == NCI_CONFIG_PARAM_BCM2079x_I93_DATARATE) && (value[2] & 0x1)) {
-        goldfish_nfc_send_ntf(nfc_rf_field_info_ntf_cb, NULL);
+        cb.send_ntf(nfc_rf_field_info_ntf_cb, NULL);
     }
 }
 

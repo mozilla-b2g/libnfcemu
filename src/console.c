@@ -26,6 +26,7 @@
 #include "nfc-nci.h"
 #include "nfc-tag.h"
 #include "snep.h"
+#include "cb.h"
 
 struct nfc_ndef_record_param {
     unsigned long flags;
@@ -99,9 +100,8 @@ build_ndef_msg(ControlClient client,
         if (res < 0) {
             return -1;
         } else if ((res > 255) && (flags & NDEF_FLAG_SR)) {
-            control_write(client,
-                          "KO: NDEF flag SR set for long payload of %zu bytes",
-                          res);
+            cb.log_err("KO: NDEF flag SR set for long payload of %zu bytes",
+                       res);
             return -1;
         }
         ndef_rec_set_payload_len(ndef, res);
@@ -161,7 +161,7 @@ nfc_send_snep_put_cb(void* data,
     assert(param);
 
     if (!nfc->active_re) {
-        control_write(param->client, "KO: no active remote endpoint\n");
+        cb.log_err("KO: no active remote endpoint\n");
         return -1;
     }
     if ((param->dsap < 0) && (param->ssap < 0)) {
@@ -171,7 +171,7 @@ nfc_send_snep_put_cb(void* data,
     res = nfc_re_send_snep_put(nfc->active_re, param->dsap, param->ssap,
                                create_snep_cp, data);
     if (res < 0) {
-        control_write(param->client, "KO: 'snep put' failed\r\n");
+        cb.log_err("KO: 'snep put' failed\r\n");
         return -1;
     }
     return res;
@@ -189,7 +189,7 @@ nfc_recv_process_ndef_cb(void* data, size_t len, const struct ndef_rec* ndef)
 
     remain = len;
 
-    control_write(param->client, "[");
+    cb.log_msg("[");
 
     while (remain) {
         size_t tlen, plen, ilen, reclen;
@@ -207,23 +207,22 @@ nfc_recv_process_ndef_cb(void* data, size_t len, const struct ndef_rec* ndef)
                              base64[2], sizeof(base64[2]));
 
         /* print NDEF message in JSON format */
-        control_write(param->client,
-                      "{\"tnf\": %d,"
-                      " \"type\": \"%.*s\","
-                      " \"id\": \"%.*s\","
-                      " \"payload\": \"%.*s\"}",
-                      ndef->flags & NDEF_TNF_BITS,
-                      tlen, base64[0], ilen, base64[1], plen, base64[2]);
+        cb.log_msg("{\"tnf\": %d,"
+                   " \"type\": \"%.*s\","
+                   " \"id\": \"%.*s\","
+                   " \"payload\": \"%.*s\"}",
+                   ndef->flags & NDEF_TNF_BITS,
+                   tlen, base64[0], ilen, base64[1], plen, base64[2]);
 
         /* advance record */
         reclen = ndef_rec_len(ndef);
         remain -= reclen;
         ndef = (const struct ndef_rec*)(((const unsigned char*)ndef) + reclen);
         if (remain) {
-          control_write(param->client, ","); /* more to come */
+          cb.log_msg(","); /* more to come */
         }
     }
-    control_write(param->client, "]\r\n");
+    cb.log_msg("]\r\n");
     return 0;
 }
 
@@ -237,7 +236,7 @@ nfc_recv_snep_put_cb(void* data,  struct nfc_device* nfc)
     assert(param);
 
     if (!nfc->active_re) {
-        control_write(param->client, "KO: no active remote endpoint\r\n");
+        cb.log_err("KO: no active remote endpoint\r\n");
         return -1;
     }
     if ((param->dsap < 0) && (param->ssap < 0)) {
@@ -247,7 +246,7 @@ nfc_recv_snep_put_cb(void* data,  struct nfc_device* nfc)
     res = nfc_re_recv_snep_put(nfc->active_re, param->dsap, param->ssap,
                                nfc_recv_process_ndef_cb, data);
     if (res < 0) {
-        control_write(param->client, "KO: 'snep put' failed\r\n");
+        cb.log_err("KO: 'snep put' failed\r\n");
         return -1;
     }
     return 0;
@@ -262,7 +261,7 @@ lex_token(ControlClient client, const char* field, const char* delim, char** arg
 
     tok = strsep(args, delim);
     if (!tok) {
-        control_write(client, "KO: no token %s given\r\n", field);
+        cb.log_err("KO: no token %s given\r\n", field);
         return NULL;
     }
     return tok;
@@ -283,9 +282,8 @@ parse_token_l(ControlClient client, const char* field, const char* delim,
     errno = 0;
     *val = strtol(tok, NULL, 0);
     if (errno) {
-        control_write(client,
-                      "KO: invalid value '%s' for token %s, error %d(%s)\r\n",
-                      tok, field, errno, strerror(errno));
+        cb.log_err("KO: invalid value '%s' for token %s, error %d(%s)\r\n",
+                   tok, field, errno, strerror(errno));
         return -1;
     }
     return 0;
@@ -306,9 +304,8 @@ parse_token_ul(ControlClient client, const char* field, const char* delim,
     errno = 0;
     *val = strtoul(tok, NULL, 0);
     if (errno) {
-        control_write(client,
-                      "KO: invalid value '%s' for token %s, error %d(%s)\r\n",
-                      tok, field, errno, strerror(errno));
+        cb.log_err("KO: invalid value '%s' for token %s, error %d(%s)\r\n",
+                   tok, field, errno, strerror(errno));
         return -1;
     }
     return 0;
@@ -327,7 +324,7 @@ parse_token_s(ControlClient client, const char* field, const char* delim,
         return -1;
     }
     if (!allow_empty && !(*val)[0]) {
-        control_write(client, "KO: empty token %s\r\n", field);
+        cb.log_err("KO: empty token %s\r\n", field);
         return -1;
     }
     return 0;
@@ -345,7 +342,7 @@ parse_sap(ControlClient client, const char* field,
     }
     if (((*sap == -1) && !can_autodetect) ||
          (*sap < -1) || !(*sap < LLCP_NUMBER_OF_SAPS)) {
-        control_write(client, "KO: invalid %s '%ld'\r\n",
+        cb.log_err("KO: invalid %s '%ld'\r\n",
                       field, *sap);
         return -1;
     }
@@ -369,7 +366,7 @@ parse_ndef_rec(ControlClient client, char** args,
     /* read opening bracket */
     p = strsep(args, "[");
     if (!p) {
-        control_write(client, "KO: no NDEF record given\r\n");
+        cb.log_err("KO: no NDEF record given\r\n");
         return -1;
     }
     /* read flags */
@@ -377,7 +374,7 @@ parse_ndef_rec(ControlClient client, char** args,
         return -1;
     }
     if (record->flags & ~NDEF_FLAG_BITS) {
-        control_write(client, "KO: invalid NDEF flags '%u'\r\n",
+        cb.log_err("KO: invalid NDEF flags '%u'\r\n",
                       record->flags);
         return -1;
     }
@@ -386,8 +383,8 @@ parse_ndef_rec(ControlClient client, char** args,
         return -1;
     }
     if (!(tnf < NDEF_NUMBER_OF_TNFS)) {
-        control_write(client, "KO: invalid NDEF TNF '%u'\r\n",
-                      record->tnf);
+        cb.log_err("KO: invalid NDEF TNF '%u'\r\n",
+                   record->tnf);
         return -1;
     }
     record->tnf = tnf;
@@ -420,9 +417,8 @@ parse_ndef_msg(ControlClient client, char** args, size_t nrecs,
         }
     }
     if (*args && strlen(*args)) {
-        control_write(client,
-                      "KO: invalid characters near EOL: %s\r\n",
-                      *args);
+        cb.log_err("KO: invalid characters near EOL: %s\r\n",
+                   *args);
         return -1;
     }
     return i;
@@ -438,7 +434,7 @@ parse_re_index(ControlClient client, char** args, unsigned long nres,
         return -1;
     }
     if (!(*i < nres)) {
-        control_write(client, "KO: unknown remote endpoint %lu\r\n", *i);
+        cb.log_err("KO: unknown remote endpoint %lu\r\n", *i);
         return -1;
     }
     return 0;
@@ -453,7 +449,7 @@ parse_nci_ntf_type(ControlClient client, char** args, unsigned long* ntype)
         return -1;
     }
     if (!(*ntype < NUMBER_OF_NCI_NOTIFICATION_TYPES)) {
-        control_write(client, "KO: unknown discover notification type %lu\r\n", *ntype);
+        cb.log_err("KO: unknown discover notification type %lu\r\n", *ntype);
         return -1;
     }
     return 0;
@@ -468,7 +464,7 @@ parse_rf_index(ControlClient client, char** args, long* rf)
         return -1;
     }
     if (*rf < -1 || *rf >= NUMBER_OF_SUPPORTED_NCI_RF_INTERFACES) {
-        control_write(client, "KO: unknown rf index %lu\r\n", *rf);
+        cb.log_err("KO: unknown rf index %lu\r\n", *rf);
         return -1;
     }
     return 0;
@@ -483,7 +479,7 @@ parse_nci_deactivate_ntf_type(ControlClient client, char** args, unsigned long* 
         return -1;
     }
     if (!(*dtype < NUMBER_OF_NCI_RF_DEACT_TYPE)) {
-        control_write(client, "KO: unknown deactivate notification type %lu\r\n", *dtype);
+        cb.log_err("KO: unknown deactivate notification type %lu\r\n", *dtype);
         return -1;
     }
     return 0;
@@ -498,7 +494,7 @@ parse_nci_deactivate_ntf_reason(ControlClient client, char** args, unsigned long
         return -1;
     }
     if (!(*dreason < NUMBER_OF_NCI_RF_DEACT_REASON)) {
-        control_write(client, "KO: unknown deactivate notification reason %lu\r\n", *dreason);
+        cb.log_err("KO: unknown deactivate notification reason %lu\r\n", *dreason);
         return -1;
     }
     return 0;
@@ -510,13 +506,13 @@ do_nfc_snep( ControlClient  client, char*  args )
     char *p;
 
     if (!args) {
-        control_write(client, "KO: no arguments given\r\n");
+        cb.log_err("KO: no arguments given\r\n");
         return -1;
     }
 
     p = strsep(&args, " ");
     if (!p) {
-        control_write(client, "KO: no operation given\r\n");
+        cb.log_err("KO: no operation given\r\n");
         return -1;
     }
     if (!strcmp(p, "put")) {
@@ -544,19 +540,19 @@ do_nfc_snep( ControlClient  client, char*  args )
         param.nrecords = nrecords;
         if (param.nrecords) {
             /* put SNEP request onto SNEP server */
-            if (goldfish_nfc_send_dta(nfc_send_snep_put_cb, &param) < 0) {
+            if (cb.send_dta(nfc_send_snep_put_cb, &param) < 0) {
                 /* error message generated in create function */
                 return -1;
             }
         } else {
             /* put SNEP request onto SNEP server */
-            if (goldfish_nfc_recv_dta(nfc_recv_snep_put_cb, &param) < 0) {
+            if (cb.recv_dta(nfc_recv_snep_put_cb, &param) < 0) {
                 /* error message generated in create function */
                 return -1;
             }
         }
     } else {
-        control_write(client, "KO: invalid operation '%s'\r\n", p);
+        cb.log_err("KO: invalid operation '%s'\r\n", p);
         return -1;
     }
 
@@ -591,7 +587,7 @@ nfc_rf_discovery_ntf_cb(void* data,
     const struct nfc_ntf_param* param = data;
     res = nfc_create_rf_discovery_ntf(param->re, param->ntype, nfc, ntf);
     if (res < 0) {
-        control_write(param->client, "KO: rf_discover_ntf failed\r\n");
+        cb.log_err("KO: rf_discover_ntf failed\r\n");
         return -1;
     }
     return res;
@@ -606,7 +602,7 @@ nfc_rf_intf_activated_ntf_cb(void* data,
     struct nfc_ntf_param* param = data;
     if (!param->re) {
         if (!nfc->active_re) {
-            control_write(param->client, "KO: no active remote-endpoint\n");
+            cb.log_err("KO: no active remote-endpoint\n");
             return -1;
         }
         param->re = nfc->active_re;
@@ -620,7 +616,7 @@ nfc_rf_intf_activated_ntf_cb(void* data,
                                                           param->re->rfproto,
                                                           param->re->mode);
         if (!nfc->active_rf) {
-            control_write(param->client, "KO: no active rf interface\r\n");
+            cb.log_err("KO: no active rf interface\r\n");
             return -1;
         }
     } else {
@@ -629,7 +625,7 @@ nfc_rf_intf_activated_ntf_cb(void* data,
 
     res = nfc_create_rf_intf_activated_ntf(param->re, nfc, ntf);
     if (res < 0) {
-        control_write(param->client, "KO: rf_intf_activated_ntf failed\r\n");
+        cb.log_err("KO: rf_intf_activated_ntf failed\r\n");
         return -1;
     }
     return res;
@@ -648,7 +644,7 @@ nfc_rf_intf_deactivate_ntf_cb(void* data,
 
     res = nfc_create_deactivate_ntf(param->dtype, param->dreason, ntf);
     if (res < 0) {
-        control_write(param->client, "KO: rf_intf_deactivate_ntf failed\r\n");
+        cb.log_err("KO: rf_intf_deactivate_ntf failed\r\n");
         return -1;
     }
     return res;
@@ -660,14 +656,14 @@ do_nfc_nci( ControlClient  client, char*  args )
     char *p;
 
     if (!args) {
-        control_write(client, "KO: no arguments given\r\n");
+        cb.log_err("KO: no arguments given\r\n");
         return -1;
     }
 
     /* read notification type */
     p = strsep(&args, " ");
     if (!p) {
-        control_write(client, "KO: no operation given\r\n");
+        cb.log_err("KO: no operation given\r\n");
         return -1;
     }
     if (!strcmp(p, "rf_discover_ntf")) {
@@ -685,7 +681,7 @@ do_nfc_nci( ControlClient  client, char*  args )
         }
 
         /* generate RF_DISCOVER_NTF */
-        if (goldfish_nfc_send_ntf(nfc_rf_discovery_ntf_cb, &param) < 0) {
+        if (cb.send_ntf(nfc_rf_discovery_ntf_cb, &param) < 0) {
             /* error message generated in create function */
             return -1;
         }
@@ -713,7 +709,7 @@ do_nfc_nci( ControlClient  client, char*  args )
         }
         /* generate RF_INTF_ACTIVATED_NTF; if param.re == NULL,
          * active RE will be used */
-        if (goldfish_nfc_send_ntf(nfc_rf_intf_activated_ntf_cb, &param) < 0) {
+        if (cb.send_ntf(nfc_rf_intf_activated_ntf_cb, &param) < 0) {
             /* error message generated in create function */
             return -1;
         }
@@ -732,12 +728,12 @@ do_nfc_nci( ControlClient  client, char*  args )
             param.dtype = NCI_RF_DEACT_DISCOVERY;
             param.dreason = NCI_RF_DEACT_RF_LINK_LOSS;
         }
-        if (goldfish_nfc_send_ntf(nfc_rf_intf_deactivate_ntf_cb, &param) < 0) {
+        if (cb.send_ntf(nfc_rf_intf_deactivate_ntf_cb, &param) < 0) {
             /* error message generated in create function */
             return -1;
         }
     } else {
-        control_write(client, "KO: invalid operation '%s'\r\n", p);
+        cb.log_err("KO: invalid operation '%s'\r\n", p);
         return -1;
     }
 
@@ -765,7 +761,7 @@ nfc_llcp_connect_cb(void* data, struct nfc_device* nfc, size_t maxlen,
     ssize_t res;
 
     if (!nfc->active_re) {
-        control_write(param->client, "KO: no active remote endpoint\n");
+        cb.log_err("KO: no active remote endpoint\n");
         return -1;
     }
     if ((param->dsap < 0) && (param->ssap < 0)) {
@@ -773,16 +769,16 @@ nfc_llcp_connect_cb(void* data, struct nfc_device* nfc, size_t maxlen,
         param->ssap = nfc->active_re->last_ssap;
     }
     if (!param->dsap) {
-        control_write(param->client, "KO: DSAP is 0\r\n");
+        cb.log_err("KO: DSAP is 0\r\n");
         return -1;
     }
     if (!param->ssap) {
-        control_write(param->client, "KO: SSAP is 0\r\n");
+        cb.log_err("KO: SSAP is 0\r\n");
         return -1;
     }
     res = nfc_re_send_llcp_connect(nfc->active_re, param->dsap, param->ssap);
     if (res < 0) {
-        control_write(param->client, "KO: LLCP connect failed\r\n");
+        cb.log_err("KO: LLCP connect failed\r\n");
         return -1;
     }
     return 0;
@@ -794,13 +790,13 @@ do_nfc_llcp( ControlClient  client, char*  args )
     char *p;
 
     if (!args) {
-        control_write(client, "KO: no arguments given\r\n");
+        cb.log_err("KO: no arguments given\r\n");
         return -1;
     }
 
     p = strsep(&args, " ");
     if (!p) {
-        control_write(client, "KO: no operation given\r\n");
+        cb.log_err("KO: no operation given\r\n");
         return -1;
     }
     if (!strcmp(p, "connect")) {
@@ -814,12 +810,12 @@ do_nfc_llcp( ControlClient  client, char*  args )
         if (parse_sap(client, "SSAP", &args, &param.ssap, 1) < 0) {
             return -1;
         }
-        if (goldfish_nfc_send_dta(nfc_llcp_connect_cb, &param) < 0) {
+        if (cb.send_dta(nfc_llcp_connect_cb, &param) < 0) {
             /* error message generated in create function */
             return -1;
         }
     } else {
-        control_write(client, "KO: invalid operation '%s'\r\n", p);
+        cb.log_err("KO: invalid operation '%s'\r\n", p);
         return -1;
     }
 
@@ -832,13 +828,13 @@ do_nfc_tag( ControlClient client, char*  args )
     char *p;
 
     if (!args) {
-        control_write(client, "KO: no arguments given\r\n");
+        cb.log_err("KO: no arguments given\r\n");
         return -1;
     }
 
     p = strsep(&args, " ");
     if (!p) {
-        control_write(client, "KO: no operation given\r\n");
+        cb.log_err("KO: no operation given\r\n");
         return -1;
     }
     if (!strcmp(p, "set")) {
@@ -856,7 +852,7 @@ do_nfc_tag( ControlClient client, char*  args )
         re = nfc_res + i;
 
         if (!re->tag) {
-            control_write(client, "KO: remote endpoint is not a tag\r\n");
+            cb.log_err("KO: remote endpoint is not a tag\r\n");
             return -1;
         }
 

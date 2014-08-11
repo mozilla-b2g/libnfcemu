@@ -18,6 +18,7 @@
 #define nfc_re_h
 
 #include <sys/types.h>
+#include <nfcemu/types.h>
 #include "llcp.h"
 #include "nfc-rf.h"
 
@@ -66,7 +67,7 @@ struct nfc_re {
     enum llcp_sap last_dsap; /* last remote SAP */
     enum llcp_sap last_ssap; /* last local SAP */
     int xmit_next; /* true if we are supposed to send the next PDU */
-    QEMUTimer *xmit_timer;
+    nfcemu_timeout* xmit_timeout;
     struct llcp_pdu_queue xmit_q;
     uint8_t connid;
     size_t sbufsiz;
@@ -85,7 +86,7 @@ struct nfc_re {
         .nfcid3 = nfcid_, \
         .id = 0, \
         .xmit_next = 0, \
-        .xmit_timer = NULL, \
+        .xmit_timeout = NULL, \
         .xmit_q = TAILQ_HEAD_INITIALIZER((addr_)->xmit_q), \
         .connid = 0, \
         .sbufsiz = 0, \
