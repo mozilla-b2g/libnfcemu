@@ -158,7 +158,7 @@ llcp_init_data_link(struct llcp_data_link* dl)
     assert(dl);
 
     dl->status = LLCP_DATA_LINK_DISCONNECTED;
-    QTAILQ_INIT(&dl->xmit_q);
+    TAILQ_INIT(&dl->xmit_q);
 
     return llcp_clear_data_link(dl);
 }

@@ -86,7 +86,7 @@ struct nfc_re {
         .id = 0, \
         .xmit_next = 0, \
         .xmit_timer = NULL, \
-        .xmit_q = QTAILQ_HEAD_INITIALIZER((addr_)->xmit_q), \
+        .xmit_q = TAILQ_HEAD_INITIALIZER((addr_)->xmit_q), \
         .connid = 0, \
         .sbufsiz = 0, \
         .rbufsiz = 0 \

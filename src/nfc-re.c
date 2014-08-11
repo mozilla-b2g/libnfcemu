@@ -16,7 +16,6 @@
 
 #include <assert.h>
 #include <string.h>
-#include "goldfish_nfc.h"
 #include "nfc-debug.h"
 #include "nfc.h"
 #include "nfc-nci.h"
@@ -98,7 +97,7 @@ send_pdu_from_re(ssize_t (*create)(void*, struct llcp_pdu*),
             return -1;
         }
         buf->len = create(data, (struct llcp_pdu*)buf->pdu);
-        QTAILQ_INSERT_TAIL(&re->xmit_q, buf, entry);
+        TAILQ_INSERT_TAIL(&re->xmit_q, buf, entry);
     }
     return 0;
 }
@@ -114,15 +113,15 @@ fetch_pdu_from_re(struct llcp_pdu* llcp, struct nfc_re* re)
     assert(llcp);
     assert(re);
 
-    if (QTAILQ_EMPTY(&re->xmit_q)) {
+    if (TAILQ_EMPTY(&re->xmit_q)) {
         return 0;
     }
 
     struct llcp_pdu_buf* buf;
-    buf = QTAILQ_FIRST(&re->xmit_q);
+    buf = TAILQ_FIRST(&re->xmit_q);
     len = buf->len;
     memcpy(llcp, buf->pdu, len);
-    QTAILQ_REMOVE(&re->xmit_q, buf, entry);
+    TAILQ_REMOVE(&re->xmit_q, buf, entry);
     llcp_free_pdu_buf(buf);
 
     return len;
@@ -417,10 +416,10 @@ process_ptype_cc(struct nfc_re* re, const struct llcp_pdu* llcp,
     dl->status = LLCP_DATA_LINK_CONNECTED;
 
     /* move DL's pending PDUs to global xmit queue */
-    while (!QTAILQ_EMPTY(&dl->xmit_q)) {
-        struct llcp_pdu_buf* buf = QTAILQ_FIRST(&dl->xmit_q);
-        QTAILQ_REMOVE(&dl->xmit_q, buf, entry);
-        QTAILQ_INSERT_TAIL(&re->xmit_q, buf, entry);
+    while (!TAILQ_EMPTY(&dl->xmit_q)) {
+        struct llcp_pdu_buf* buf = TAILQ_FIRST(&dl->xmit_q);
+        TAILQ_REMOVE(&dl->xmit_q, buf, entry);
+        TAILQ_INSERT_TAIL(&re->xmit_q, buf, entry);
     }
 
     update_last_saps(re, llcp->ssap, llcp->dsap);
@@ -932,7 +931,7 @@ send_snep_over_llcp(struct nfc_re* re,
             return -1;
         }
         buf->len = create_i_pdu(&i_param, (struct llcp_pdu*)buf->pdu);
-        QTAILQ_INSERT_TAIL(&dl->xmit_q, buf, entry);
+        TAILQ_INSERT_TAIL(&dl->xmit_q, buf, entry);
         /* on connecting successfully, pending packets will be delivered */
         res = send_pdu_from_re(create_connect_dta, &connect_param, re);
     } else if (dl->status == LLCP_DATA_LINK_CONNECTING) {
@@ -942,7 +941,7 @@ send_snep_over_llcp(struct nfc_re* re,
             return -1;
         }
         buf->len = create_i_pdu(&i_param, (struct llcp_pdu*)buf->pdu);
-        QTAILQ_INSERT_TAIL(&dl->xmit_q, buf, entry);
+        TAILQ_INSERT_TAIL(&dl->xmit_q, buf, entry);
     } else if (dl->status == LLCP_DATA_LINK_CONNECTED) {
         /* normal operation; send a SNEP request */
         res = send_pdu_from_re(create_i_pdu, &i_param, re);

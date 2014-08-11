@@ -199,12 +199,12 @@ llcp_create_param_tail(uint8_t* p);
  */
 
 struct llcp_pdu_buf {
-    QTAILQ_ENTRY(llcp_pdu_buf) entry;
+    TAILQ_ENTRY(llcp_pdu_buf) entry;
     unsigned char len;
     unsigned char pdu[256];
 };
 
-QTAILQ_HEAD(llcp_pdu_queue, llcp_pdu_buf);
+TAILQ_HEAD(llcp_pdu_queue, llcp_pdu_buf);
 
 struct llcp_pdu_buf*
 llcp_alloc_pdu_buf(void);
