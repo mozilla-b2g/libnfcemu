@@ -671,6 +671,7 @@ create_activated_ntf_tech_nfca_poll(struct nfc_re* re, uint8_t* act)
     uint8_t* p;
     enum nci_rf_protocol protocol;
     size_t cid1_len;
+    uint8_t byte1;
 
     assert(re);
 
@@ -691,12 +692,14 @@ create_activated_ntf_tech_nfca_poll(struct nfc_re* re, uint8_t* act)
     }
 
     if (protocol == NCI_RF_PROTOCOL_T1T) {
-        *p++ = *p | SREN_RES_BIT_FRAME_SDD_T1T;   /* Byte1 of SENS_RES */
+        byte1 = *p | SREN_RES_BIT_FRAME_SDD_T1T;
+        *p++ = byte1;                             /* Byte1 of SENS_RES */
         *p++ = SREN_RES_T1T;                      /* Byte2 of SENS_RES */
         *p++ = 0;                                 /* NFCID1 Length */
         *p++ = 0;
     } else {
-        *p++ = *p | SREN_RES_BIT_FRAME_SDD_OTHER_TAGS; /* Byte1 of SENS_RES */
+        byte1 = *p | SREN_RES_BIT_FRAME_SDD_OTHER_TAGS;
+        *p++ = byte1;                                  /* Byte1 of SENS_RES */
         *p++ = SREN_RES_OTHER_TAGS;                    /* Byte2 of SENS_RES */
         *p++ = cid1_len;                               /* NFCID1 Length */
         memcpy(p, re->nfcid1, cid1_len);               /* NFCID1 */
