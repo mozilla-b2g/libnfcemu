@@ -19,7 +19,7 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := base64.c\
                    cb.c \
-                   console.c \
+                   cmdline.c \
                    llcp.c \
                    llcp-snep.c \
                    ndef.c \

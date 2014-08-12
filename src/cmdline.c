@@ -493,8 +493,8 @@ parse_nci_deactivate_ntf_reason(char** args, unsigned long* dreason)
     return 0;
 }
 
-static int
-do_nfc_snep(char* args)
+int
+nfc_cmd_snep(char* args)
 {
     char *p;
 
@@ -641,8 +641,8 @@ nfc_rf_intf_deactivate_ntf_cb(void* data,
     return res;
 }
 
-static int
-do_nfc_nci(char*  args)
+int
+nfc_cmd_nci(char*  args)
 {
     char *p;
 
@@ -773,8 +773,8 @@ nfc_llcp_connect_cb(void* data, struct nfc_device* nfc, size_t maxlen,
     return 0;
 }
 
-static int
-do_nfc_llcp(char* args)
+int
+nfc_cmd_llcp(char* args)
 {
     char *p;
 
@@ -811,8 +811,8 @@ do_nfc_llcp(char* args)
     return 0;
 }
 
-static int
-do_nfc_tag(char* args)
+int
+nfc_cmd_tag(char* args)
 {
     char *p;
 
