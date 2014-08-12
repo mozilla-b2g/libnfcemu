@@ -517,7 +517,8 @@ process_t4t(struct nfc_re* re, const union command_packet* cmd,
                                     &rsp->cc_sel_rsp);
     } else if (memcmp(&cmd->rb_cmd, t4t_rb_apdu, sizeof(t4t_rb_apdu)) == 0) {
         len = process_t4t_read_binary(&cmd->rb_cmd, consumed,
-                                      &re->tag->t.t4.format, &rsp->rb_rsp);
+                                      &re->tag->t.t4.format,
+                                      (struct t4t_rb_response*)&rsp->cc_sel_rsp);
     } else if (memcmp(t4t_ndef_apdu, t4t_ndef_apdu, sizeof(t4t_ndef_apdu)) == 0) {
         len = process_t4t_ndef_select(&cmd->ndef_sel_cmd, consumed,
                                       &rsp->ndef_sel_rsp);
