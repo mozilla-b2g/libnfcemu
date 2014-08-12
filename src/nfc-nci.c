@@ -725,7 +725,7 @@ init_process_oid_rf_deactivate_cmd(const union nci_packet* cmd,
         case NFC_RFST_W4_HOST_SELECT:
         case NFC_RFST_LISTEN_SLEEP:
             if (payload->type == NCI_RF_DEACT_IDLE_MODE)
-                send_ntf = false;
+                send_ntf = 0;
             break;
         default:
             break;
