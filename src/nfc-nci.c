@@ -17,6 +17,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include "bswap.h"
 #include "nfc-debug.h"
 #include "nfc.h"
 #include "cb.h"

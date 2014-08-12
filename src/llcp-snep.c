@@ -17,6 +17,7 @@
 #include <assert.h>
 #include <limits.h>
 #include "ptr.h"
+#include "bswap.h"
 #include "nfc-debug.h"
 #include "llcp.h"
 #include "snep.h"

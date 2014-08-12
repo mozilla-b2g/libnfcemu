@@ -15,6 +15,7 @@
  */
 
 #include <assert.h>
+#include "bswap.h"
 #include "snep.h"
 
 size_t
