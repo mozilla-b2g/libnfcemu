@@ -192,7 +192,7 @@ nfc_recv_process_ndef_cb(void* data, size_t len, const struct ndef_rec* ndef)
     while (remain) {
         size_t tlen, plen, ilen, reclen;
 
-        if (remain < sizeof(*ndef)) {
+        if (remain < (ssize_t)sizeof(*ndef)) {
             return -1; /* too short */
         }
         tlen = encode_base64(ndef_rec_const_type(ndef),
@@ -589,7 +589,7 @@ nfc_rf_intf_activated_ntf_cb(void* data,
                              struct nfc_device* nfc, size_t maxlen,
                              union nci_packet* ntf)
 {
-    size_t res;
+    ssize_t res;
     struct nfc_ntf_param* param = data;
     if (!param->re) {
         if (!nfc->active_re) {
