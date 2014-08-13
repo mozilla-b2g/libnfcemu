@@ -42,4 +42,20 @@ nfcemu_init(void (*log_msg)(const char* fmtstr, ...),
 void
 nfcemu_uninit(void);
 
+struct nfc_device*
+nfc_device_create(void);
+
+void
+nfc_device_destroy(struct nfc_device* nfc);
+
+int
+nfc_device_process_nci_msg(struct nfc_device* nfc,
+                           const uint8_t* cmd, uint8_t* rsp,
+                           struct nfc_delivery_cb* cb);
+
+int
+nfc_device_process_hci_msg(struct nfc_device* nfc,
+                           const uint8_t* cmd, uint8_t* rsp,
+                           struct nfc_delivery_cb* cb);
+
 #endif

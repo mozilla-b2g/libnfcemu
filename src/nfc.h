@@ -20,6 +20,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
+#include <nfcemu/types.h>
 #include "nfc-rf.h"
 
 struct nfc_re;
@@ -36,13 +37,6 @@ enum nfc_fsm_state {
     NUMBER_OF_NFC_FSM_STATES
 };
 
-/* the buffer-type for the delivery callback */
-enum nfc_buf_type {
-    NO_BUF = 0,
-    NTFN_BUF,
-    DATA_BUF
-};
-
 struct nfc_device {
     enum nfc_fsm_state state;
     enum nfc_rfst rf_state;
@@ -56,13 +50,6 @@ struct nfc_device {
 
     /* stores all config options */
     uint8_t config_id_value[128];
-};
-
-/* supplied to process_{nci,hci}_message */
-struct nfc_delivery_cb {
-    enum nfc_buf_type type;
-    void* data;
-    ssize_t (*func)(void* /*user_data*/, union nci_packet*);
 };
 
 void

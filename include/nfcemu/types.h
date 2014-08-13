@@ -17,6 +17,28 @@
 #ifndef nfcemu_types_h
 #define nfcemu_types_h
 
+#include <stdint.h>
+
+union nci_packet;
+
 typedef void nfcemu_timeout;
+
+/* the buffer-type for the delivery callback */
+enum nfc_buf_type {
+  NO_BUF = 0,
+  NTFN_BUF,
+  DATA_BUF
+};
+
+/* supplied to process_{nci,hci}_message */
+struct nfc_delivery_cb {
+  enum nfc_buf_type type;
+  void* data;
+  ssize_t (*func)(void* /*user_data*/, union nci_packet*);
+};
+
+enum {
+  MAX_NCI_PAYLOAD_LENGTH = 256
+};
 
 #endif

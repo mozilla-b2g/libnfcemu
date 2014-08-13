@@ -15,7 +15,11 @@
  */
 
 #include <assert.h>
+#include <stdlib.h>
 #include "cb.h"
+#include "nfc.h"
+#include "nfc-hci.h"
+#include "nfc-nci.h"
 #include <nfcemu/nfcemu.h>
 
 int
@@ -59,4 +63,44 @@ void
 nfcemu_uninit()
 {
   return;
+}
+
+struct nfc_device*
+nfc_device_create()
+{
+  struct nfc_device* nfc;
+
+  nfc = malloc(sizeof(*nfc));
+  if (!nfc) {
+    return NULL;
+  }
+  nfc_device_init(nfc);
+
+  return nfc;
+}
+
+void
+nfc_device_destroy(struct nfc_device* nfc)
+{
+  assert(nfc);
+
+  free(nfc);
+}
+
+int
+nfc_device_process_nci_msg(struct nfc_device* nfc,
+                           const uint8_t* cmd, uint8_t* rsp,
+                           struct nfc_delivery_cb* cb)
+{
+  return nfc_process_nci_msg((const union nci_packet*)cmd, nfc,
+                             (union nci_packet*)rsp, cb);
+}
+
+int
+nfc_device_process_hci_msg(struct nfc_device* nfc,
+                           const uint8_t* cmd, uint8_t* rsp,
+                           struct nfc_delivery_cb* cb)
+{
+  return nfc_process_hci_cmd((const union hci_packet*)cmd, nfc,
+                             (union hci_answer*)rsp);
 }

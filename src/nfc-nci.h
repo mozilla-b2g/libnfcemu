@@ -149,10 +149,6 @@ enum nci_notification_type {
 };
 
 enum {
-    MAX_NCI_PAYLOAD_LENGTH = 256
-};
-
-enum {
     ANY_VALUE = 0
 };
 
