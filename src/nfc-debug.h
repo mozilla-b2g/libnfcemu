@@ -20,9 +20,13 @@
 #include <stdio.h>
 
 #if DEBUG
-#  define  NFC_D(...)   VERBOSE_PRINT(nfc, __VA_ARGS__ )
+#define NFC_D(...) \
+  {
+    fprintf(stderr, __VA_ARGS__);
+    fprintf(stderr, "\n");
+  }
 #else
-#  define  NFC_D(...)   ((void)0)
+#define NFC_D(...)  ((void)0)
 #endif
 
 #endif
