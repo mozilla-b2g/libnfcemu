@@ -42,6 +42,13 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libnfcemu
 include $(BUILD_HOST_SHARED_LIBRARY)
 
+include $(CLEAR_VARS)
+LOCAL_SRC_FILES := $(nfcemu_SRC_FILES)
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/../include
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := libnfcemu
+include $(BUILD_HOST_STATIC_LIBRARY)
+
 #
 # 64-bit library
 #
@@ -55,3 +62,13 @@ LOCAL_LDLIBS := -m64
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := lib64nfcemu
 include $(BUILD_HOST_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_SRC_FILES := $(nfcemu_SRC_FILES)
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/../include
+LOCAL_CFLAGS := -m64
+LOCAL_LDFLAGS := -m64
+LOCAL_LDLIBS := -m64
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := lib64nfcemu
+include $(BUILD_HOST_STATIC_LIBRARY)
